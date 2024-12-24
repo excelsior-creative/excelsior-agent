@@ -1116,9 +1116,6 @@ importers:
       axios:
         specifier: 1.7.7
         version: 1.7.7
-      freshdesk-api:
-        specifier: ^3.1.0
-        version: 3.1.0
       tsup:
         specifier: 8.3.5
         version: 8.3.5(postcss@8.4.49)(typescript@5.6.3)
@@ -22452,17 +22449,6 @@ packages:
   /fresh@0.5.2:
     resolution: {integrity: sha512-zJ2mQYM18rEFOudeV4GShTGIQ7RbzA7ozbU9I/XBpm7kqgMywgmylMwXHxZJmkVoYkna9d2pVXVXPdYTP9ej8Q==}
     engines: {node: '>= 0.6'}
-    dev: false
-
-  /freshdesk-api@3.1.0:
-    resolution: {integrity: sha512-ds5NDpzy63XkE8NSgRcHuNX33wN2AavgA2NWjsIFT2+2ajL6lPURPT7mxAACxVfVmbsOQfFn/2KbfZvbCEREbA==}
-    engines: {node: '>=12.18', npm: '>=3.0.0'}
-    dependencies:
-      debug: 4.4.0(supports-color@8.1.1)
-      form-data: 4.0.1
-      undici: 5.28.4
-    transitivePeerDependencies:
-      - supports-color
     dev: false
 
   /front-matter@4.0.2:
