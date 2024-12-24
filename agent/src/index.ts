@@ -55,6 +55,7 @@ import { storyPlugin } from "@elizaos/plugin-story";
 import { suiPlugin } from "@elizaos/plugin-sui";
 import { TEEMode, teePlugin } from "@elizaos/plugin-tee";
 import { tonPlugin } from "@elizaos/plugin-ton";
+import { webSearchPlugin } from "@elizaos/plugin-web-search";
 import { zksyncEraPlugin } from "@elizaos/plugin-zksync-era";
 import Database from "better-sqlite3";
 import fs from "fs";
@@ -576,6 +577,7 @@ export async function createAgent(
             getSecret(character, "SUI_PRIVATE_KEY") ? suiPlugin : null,
             getSecret(character, "STORY_PRIVATE_KEY") ? storyPlugin : null,
             getSecret(character, "FRESHDESK_API_KEY") ? freshdeskPlugin : null,
+            getSecret(character, "TAVILY_API_KEY") ? webSearchPlugin : null,
         ].filter(Boolean),
         providers: [],
         actions: [],
