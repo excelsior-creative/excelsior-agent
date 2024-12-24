@@ -1,10 +1,10 @@
 {
     "name": "Brandon Johnson",
     "username": "brandon",
-    "plugins": [],
-    "clients": [
-        "slack"
+    "plugins": [
+        "freshdesk"
     ],
+    "clients": [],
     "modelProvider": "anthropic",
     "settings": {
         "voice": {

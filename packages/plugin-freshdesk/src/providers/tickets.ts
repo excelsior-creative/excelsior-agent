@@ -8,6 +8,14 @@ import {
 import axios from "axios";
 import { FreshDeskTicket } from "../types/FreshDeskTicket";
 
+interface FreshDeskAgent {
+    id: number;
+    contact: {
+        name: string;
+        email: string;
+    };
+}
+
 export enum EnumFreshdeskTicketStatus {
     Open = 2,
     Pending = 3,
@@ -26,6 +34,7 @@ const TICKET_KEYWORDS = [
     "unresolved tickets",
     "customer support",
     "help desk",
+    "freshdesk",
 ] as const;
 
 // Helper functions
@@ -35,17 +44,52 @@ const containsTicketKeyword = (text: string): boolean => {
     );
 };
 
-const formatTicketsResponse = (tickets: FreshDeskTicket[]): string => {
+const getAgents = async (runtime: IAgentRuntime): Promise<FreshDeskAgent[]> => {
+    try {
+        const apiEndpoint = runtime.getSetting("FRESHDESK_API_URL");
+        const apiKey = runtime.getSetting("FRESHDESK_API_KEY");
+        const response = await axios.get(`${apiEndpoint}/agents`, {
+            headers: {
+                "Content-Type": "application/json",
+            },
+            auth: {
+                username: apiKey,
+                password: "x",
+            },
+        });
+
+        return response.data as FreshDeskAgent[];
+    } catch (error) {
+        console.error("Error fetching agents:", error);
+        return [];
+    }
+};
+
+const formatTicketsResponse = async (
+    tickets: FreshDeskTicket[],
+    runtime: IAgentRuntime
+): Promise<string> => {
     if (!tickets.length) {
         return "No unresolved tickets found.";
     }
 
+    // Fetch agents to map IDs to names
+    const agents = await getAgents(runtime);
+    const agentMap = new Map(
+        agents.map((agent) => [agent.id, agent.contact.name])
+    );
+
     let response = "🎫 Current Unresolved Tickets\n\n";
 
     tickets.forEach((ticket) => {
+        const assignedAgent = ticket.responder_id
+            ? agentMap.get(ticket.responder_id) ||
+              `Agent ${ticket.responder_id}`
+            : "Unassigned";
         response += `Ticket #${ticket.id}: ${ticket.subject}\n`;
         response += `• Status: ${EnumFreshdeskTicketStatus[ticket.status]}\n`;
         response += `• Priority: ${ticket.priority}\n`;
+        response += `• Assigned To: ${assignedAgent}\n`;
         response += `• Created: ${new Date(ticket.created_at).toLocaleString()}\n`;
         response += `• Updated: ${new Date(ticket.updated_at).toLocaleString()}\n\n`;
     });
@@ -72,7 +116,7 @@ export const ticketsProvider: Provider = {
         elizaLogger.info("TICKETS provider activated");
 
         const tickets = await getUnresolvedTickets(runtime);
-        return formatTicketsResponse(tickets);
+        return formatTicketsResponse(tickets, runtime);
     },
 };
 
