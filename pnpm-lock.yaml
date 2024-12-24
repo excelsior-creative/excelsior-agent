@@ -1105,6 +1105,18 @@ importers:
         specifier: 2.1.4
         version: 2.1.4(@types/node@20.17.9)
 
+  packages/plugin-freshdesk:
+    dependencies:
+      '@elizaos/core':
+        specifier: workspace:*
+        version: link:../core
+      axios:
+        specifier: ^1.7.9
+        version: 1.7.9(debug@4.4.0)
+      tsup:
+        specifier: 8.3.5
+        version: 8.3.5(postcss@8.4.49)(typescript@5.6.3)
+
   packages/plugin-goat:
     dependencies:
       '@elizaos/core':
@@ -14886,6 +14898,7 @@ packages:
     resolution: {integrity: sha512-SpNNxkftTJOPk0oN+y2bIqurEXHTA2AOZ3EJDDKeJ5VzkvvORSvmQXGQarcOzWV1ac7DCaPBEdMDxBsM+d8jWw==}
     dependencies:
       undici-types: 6.19.8
+    dev: true
 
   /@types/normalize-package-data@2.4.4:
     resolution: {integrity: sha512-37i+OaWTh9qeK4LSHPsyRC7NahnGotNuZvjLSgcPzblpHB3rrCJxAOgI5gCdKm7coonsaX1Of0ILiTcnZjbfxA==}
@@ -15505,7 +15518,7 @@ packages:
       '@vitest/spy': 2.1.5
       estree-walker: 3.0.3
       magic-string: 0.30.17
-      vite: 5.4.11(@types/node@22.8.4)
+      vite: 5.4.11(@types/node@20.17.9)
 
   /@vitest/pretty-format@2.1.4:
     resolution: {integrity: sha512-L95zIAkEuTDbUX1IsjRl+vyBSLh3PwLLgKpghl37aCK9Jvw0iP+wKwIFhfjdUtA2myLgjrG6VU6JCFLv8q/3Ww==}
@@ -21706,6 +21719,7 @@ packages:
       is-hex-prefixed: 1.0.0
       strip-hex-prefix: 1.0.0
     dev: false
+    bundledDependencies: false
 
   /eval@0.1.8:
     resolution: {integrity: sha512-EzV94NYKoO09GLXGjXj9JIlXijVck4ONSr5wiCWDvhsvj5jxSrzTmRU/9C1DyB6uToszLs8aifA6NQ7lEQdvFw==}
@@ -21910,7 +21924,7 @@ packages:
     engines: {node: '>= 10.17.0'}
     hasBin: true
     dependencies:
-      debug: 4.3.4
+      debug: 4.4.0(supports-color@8.1.1)
       get-stream: 5.2.0
       yauzl: 2.10.0
     optionalDependencies:
@@ -36312,6 +36326,7 @@ packages:
       rollup: 4.29.1
     optionalDependencies:
       fsevents: 2.3.3
+    dev: true
 
   /vitest@2.1.4(@types/node@20.17.9):
     resolution: {integrity: sha512-eDjxbVAJw1UJJCHr5xr/xM86Zx+YxIEXGAR+bmnEID7z9qWfoxpHw0zdobz+TQAFOLT+nEXz3+gx6nUJ7RgmlQ==}

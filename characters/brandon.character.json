@@ -7,12 +7,6 @@
     ],
     "modelProvider": "anthropic",
     "settings": {
-        "secrets": {
-            "USE_OPENAI_EMBEDDING": "true"
-        },
-        "environment": {
-            "USE_OPENAI_EMBEDDING": "true"
-        },
         "voice": {
             "model": "en_US-hfc_male-medium"
         }
