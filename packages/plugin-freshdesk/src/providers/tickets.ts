@@ -8,12 +8,31 @@ import {
 import axios from "axios";
 import { FreshDeskTicket } from "../types/FreshDeskTicket";
 
+// Types and Interfaces
 interface FreshDeskAgent {
     id: number;
     contact: {
         name: string;
         email: string;
     };
+}
+
+interface FreshDeskContact {
+    id: number;
+    name: string;
+    email: string;
+    company_id?: number;
+    phone?: string;
+    mobile?: string;
+    address?: string;
+}
+
+interface FreshDeskCompany {
+    id: number;
+    name: string;
+    description?: string;
+    domains?: string[];
+    custom_fields?: Record<string, any>;
 }
 
 export enum EnumFreshdeskTicketStatus {
@@ -36,6 +55,82 @@ const TICKET_KEYWORDS = [
     "help desk",
     "freshdesk",
 ] as const;
+
+// API Functions
+const getAgents = async (runtime: IAgentRuntime): Promise<FreshDeskAgent[]> => {
+    try {
+        const apiEndpoint = runtime.getSetting("FRESHDESK_API_URL");
+        const apiKey = runtime.getSetting("FRESHDESK_API_KEY");
+        const response = await axios.get(`${apiEndpoint}/agents`, {
+            headers: {
+                "Content-Type": "application/json",
+            },
+            auth: {
+                username: apiKey,
+                password: "x",
+            },
+        });
+
+        return response.data as FreshDeskAgent[];
+    } catch (error) {
+        console.error("Error fetching agents:", error);
+        return [];
+    }
+};
+
+const getContact = async (
+    contactId: number,
+    runtime: IAgentRuntime
+): Promise<FreshDeskContact | null> => {
+    try {
+        const apiEndpoint = runtime.getSetting("FRESHDESK_API_URL");
+        const apiKey = runtime.getSetting("FRESHDESK_API_KEY");
+        const response = await axios.get(
+            `${apiEndpoint}/contacts/${contactId}`,
+            {
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                auth: {
+                    username: apiKey,
+                    password: "x",
+                },
+            }
+        );
+
+        return response.data as FreshDeskContact;
+    } catch (error) {
+        console.error(`Error fetching contact ${contactId}:`, error);
+        return null;
+    }
+};
+
+const getCompany = async (
+    companyId: number,
+    runtime: IAgentRuntime
+): Promise<FreshDeskCompany | null> => {
+    try {
+        const apiEndpoint = runtime.getSetting("FRESHDESK_API_URL");
+        const apiKey = runtime.getSetting("FRESHDESK_API_KEY");
+        const response = await axios.get(
+            `${apiEndpoint}/companies/${companyId}`,
+            {
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                auth: {
+                    username: apiKey,
+                    password: "x",
+                },
+            }
+        );
+
+        return response.data as FreshDeskCompany;
+    } catch (error) {
+        console.error(`Error fetching company ${companyId}:`, error);
+        return null;
+    }
+};
 
 // Helper functions
 const containsTicketKeyword = (text: string): boolean => {
@@ -63,25 +158,47 @@ const extractTicketId = (text: string): number | null => {
     return null;
 };
 
-const getAgents = async (runtime: IAgentRuntime): Promise<FreshDeskAgent[]> => {
-    try {
-        const apiEndpoint = runtime.getSetting("FRESHDESK_API_URL");
-        const apiKey = runtime.getSetting("FRESHDESK_API_KEY");
-        const response = await axios.get(`${apiEndpoint}/agents`, {
-            headers: {
-                "Content-Type": "application/json",
-            },
-            auth: {
-                username: apiKey,
-                password: "x",
-            },
-        });
+// Link generation helper functions
+const generateTicketLink = (baseUrl: string, ticketId: number): string => {
+    return `${baseUrl}/a/tickets/${ticketId}`;
+};
 
-        return response.data as FreshDeskAgent[];
-    } catch (error) {
-        console.error("Error fetching agents:", error);
-        return [];
+const generateContactLink = (baseUrl: string, contactId: number): string => {
+    return `${baseUrl}/a/contacts/${contactId}`;
+};
+
+const generateCompanyLink = (baseUrl: string, companyId: number): string => {
+    return `${baseUrl}/a/companies/${companyId}`;
+};
+
+const extractEntityId = (
+    text: string
+): { type: "ticket" | "contact" | "company" | null; id: number | null } => {
+    // Look for patterns like "ticket #123", "#123", "ticket 123", "contact 123", "company 123"
+    const patterns = {
+        ticket: [
+            /ticket #(\d+)/i,
+            /#(\d+)/i,
+            /ticket (\d+)/i,
+            /ticket id (\d+)/i,
+            /ticket number (\d+)/i,
+        ],
+        contact: [/contact #(\d+)/i, /contact (\d+)/i, /contact id (\d+)/i],
+        company: [/company #(\d+)/i, /company (\d+)/i, /company id (\d+)/i],
+    };
+
+    for (const [type, typePatterns] of Object.entries(patterns)) {
+        for (const pattern of typePatterns) {
+            const match = text.match(pattern);
+            if (match && match[1]) {
+                return {
+                    type: type as "ticket" | "contact" | "company",
+                    id: parseInt(match[1], 10),
+                };
+            }
+        }
     }
+    return { type: null, id: null };
 };
 
 const formatTicketsResponse = async (
@@ -92,7 +209,7 @@ const formatTicketsResponse = async (
         return "No unresolved tickets found.";
     }
 
-    // Fetch agents to map IDs to names
+    const baseUrl = runtime.getSetting("FRESHDESK_BASE_URL");
     const agents = await getAgents(runtime);
     const agentMap = new Map(
         agents.map((agent) => [agent.id, agent.contact.name])
@@ -105,7 +222,8 @@ const formatTicketsResponse = async (
             ? agentMap.get(ticket.responder_id) ||
               `Agent ${ticket.responder_id}`
             : "Unassigned";
-        response += `Ticket #${ticket.id}: ${ticket.subject}\n`;
+        const ticketLink = generateTicketLink(baseUrl, ticket.id);
+        response += `[Ticket #${ticket.id}](${ticketLink}): ${ticket.subject}\n`;
         response += `• Status: ${EnumFreshdeskTicketStatus[ticket.status]}\n`;
         response += `• Priority: ${ticket.priority}\n`;
         response += `• Assigned To: ${assignedAgent}\n`;
@@ -120,7 +238,7 @@ const formatSingleTicketResponse = async (
     ticket: FreshDeskTicket,
     runtime: IAgentRuntime
 ): Promise<string> => {
-    // Fetch agents to map IDs to names
+    const baseUrl = runtime.getSetting("FRESHDESK_BASE_URL");
     const agents = await getAgents(runtime);
     const agentMap = new Map(
         agents.map((agent) => [agent.id, agent.contact.name])
@@ -130,11 +248,38 @@ const formatSingleTicketResponse = async (
         ? agentMap.get(ticket.responder_id) || `Agent ${ticket.responder_id}`
         : "Unassigned";
 
+    // Fetch contact and company information
+    const contact = ticket.requester_id
+        ? await getContact(ticket.requester_id, runtime)
+        : null;
+    const company = contact?.company_id
+        ? await getCompany(contact.company_id, runtime)
+        : null;
+
+    const ticketLink = generateTicketLink(baseUrl, ticket.id);
     let response = `🎫 Detailed Ticket Information\n\n`;
-    response += `Ticket #${ticket.id}: ${ticket.subject}\n`;
+    response += `[Ticket #${ticket.id}](${ticketLink}): ${ticket.subject}\n`;
     response += `• Status: ${EnumFreshdeskTicketStatus[ticket.status]}\n`;
     response += `• Priority: ${ticket.priority}\n`;
     response += `• Assigned To: ${assignedAgent}\n`;
+
+    // Add requester information
+    if (contact) {
+        const contactLink = generateContactLink(baseUrl, contact.id);
+        response += `• Requester: [${contact.name}](${contactLink})\n`;
+        response += `  - Email: ${contact.email}\n`;
+        if (contact.phone) response += `  - Phone: ${contact.phone}\n`;
+        if (contact.mobile) response += `  - Mobile: ${contact.mobile}\n`;
+    }
+
+    // Add company information
+    if (company) {
+        const companyLink = generateCompanyLink(baseUrl, company.id);
+        response += `• Company: [${company.name}](${companyLink})\n`;
+        if (company.description)
+            response += `  - Description: ${company.description}\n`;
+    }
+
     response += `• Created: ${new Date(ticket.created_at).toLocaleString()}\n`;
     response += `• Updated: ${new Date(ticket.updated_at).toLocaleString()}\n`;
     response += `• Description:\n${ticket.description_text || "No description provided."}\n\n`;
@@ -152,20 +297,42 @@ const formatSingleTicketResponse = async (
         });
     }
 
+    response += `\nView ticket: ${ticketLink}`;
+
     return response.trim();
 };
 
 export const ticketsProvider: Provider = {
     get: async (runtime: IAgentRuntime, message: Memory, _state?: State) => {
         const apiKey = runtime.getSetting("FRESHDESK_API_KEY");
-        if (!apiKey) {
+        const baseUrl = runtime.getSetting("FRESHDESK_BASE_URL");
+
+        if (!apiKey || !baseUrl) {
             elizaLogger.error(
-                "FRESHDESK_API_KEY not found in runtime settings"
+                "FRESHDESK_API_KEY or FRESHDESK_BASE_URL not found in runtime settings"
             );
             return null;
         }
 
         const messageText = message.content.text;
+        const entity = extractEntityId(messageText);
+
+        // Check if user is asking for a link
+        const isAskingForLink =
+            messageText.toLowerCase().includes("link") ||
+            messageText.toLowerCase().includes("url") ||
+            messageText.toLowerCase().includes("open");
+
+        if (isAskingForLink && entity.type && entity.id) {
+            switch (entity.type) {
+                case "ticket":
+                    return `Here's the link to the ticket: ${generateTicketLink(baseUrl, entity.id)}`;
+                case "contact":
+                    return `Here's the link to the contact: ${generateContactLink(baseUrl, entity.id)}`;
+                case "company":
+                    return `Here's the link to the company: ${generateCompanyLink(baseUrl, entity.id)}`;
+            }
+        }
 
         if (!containsTicketKeyword(messageText)) {
             return null;
